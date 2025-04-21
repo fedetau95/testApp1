@@ -1,0 +1,91 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Quiz</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div *ngIf="!quizStarted" class="start-container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Quiz di TalkMate</ion-card-title>
+        <ion-card-subtitle>Metti alla prova le tue conoscenze</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Questo quiz include domande sulle conversazioni, approcci e situazioni sociali.</p>
+        <p>Rispondi correttamente per guadagnare punti e migliorare le tue capacità!</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-button expand="block" (click)="startQuiz()">Inizia Quiz</ion-button>
+  </div>
+
+  <div *ngIf="quizStarted && !quizCompleted" class="quiz-container">
+    <ion-progress-bar [value]="currentProgress"></ion-progress-bar>
+    <div class="progress-text">Domanda {{currentQuestionIndex + 1}} di {{questions.length}}</div>
+
+    <ion-card class="question-card">
+      <ion-card-header>
+        <ion-card-title>{{currentQuestion.question}}</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-radio-group [(ngModel)]="selectedAnswer">
+            <ion-item *ngFor="let option of currentQuestion.options; let i = index">
+              <ion-label [innerHTML]="option"></ion-label>
+              <ion-radio [value]="i" slot="start"></ion-radio>
+            </ion-item>
+          </ion-radio-group>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-button expand="block" [disabled]="selectedAnswer === null" (click)="submitAnswer()">
+      Conferma Risposta
+    </ion-button>
+  </div>
+
+  <div *ngIf="quizCompleted" class="results-container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Risultati Quiz</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="score-container">
+          <div class="score">
+            {{score}} / {{questions.length}}
+          </div>
+          <div class="percentage">
+            {{(score / questions.length * 100).toFixed(0)}}%
+          </div>
+        </div>
+
+        <div class="feedback">
+          <h3>Feedback:</h3>
+          <p>{{getFeedbackMessage()}}</p>
+        </div>
+
+        <div class="answer-review">
+          <h3>Risposte:</h3>
+          <div *ngFor="let question of questions; let i = index" class="question-review">
+            <div class="question-text">
+              <span
+                [ngClass]="{'correct': userAnswers[i] === question.correctAnswer, 'incorrect': userAnswers[i] !== question.correctAnswer}">
+                <ion-icon *ngIf="userAnswers[i] === question.correctAnswer" name="checkmark-circle"></ion-icon>
+                <ion-icon *ngIf="userAnswers[i] !== question.correctAnswer" name="close-circle"></ion-icon>
+                Domanda {{i + 1}}:
+              </span>
+              {{question.question}}
+            </div>
+            <div *ngIf="userAnswers[i] !== question.correctAnswer" class="correction">
+              <div class="incorrect-answer">La tua risposta: {{question.options[userAnswers[i]]}}</div>
+              <div class="correct-answer">Risposta corretta: {{question.options[question.correctAnswer]}}</div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-button expand="block" (click)="restartQuiz()">Riprova Quiz</ion-button>
+  </div>
+</ion-content>

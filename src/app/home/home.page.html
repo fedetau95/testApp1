@@ -1,20 +1,71 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
+<ion-header>
+  <ion-toolbar color="primary">
     <ion-title>
-      Blank
+      TalkMate
     </ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+<ion-content class="ion-padding">
+  <div class="welcome-container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Benvenuto su TalkMate</ion-card-title>
+        <ion-card-subtitle>Il tuo assistente per migliorare le tue conversazioni</ion-card-subtitle>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <p>
+          TalkMate ti aiuta a migliorare le tue capacità conversazionali attraverso simulazioni realistiche, 
+          consigli pratici e quiz interattivi.
+        </p>
+      </ion-card-content>
+    </ion-card>
+    
+    <div class="features-grid">
+      <ion-card button [routerLink]="['/tabs/chat']" class="feature-card">
+        <ion-card-header>
+          <ion-icon name="chatbubbles" size="large"></ion-icon>
+          <ion-card-title>Simulazione Chat</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          Esercitati con chat realistiche e ricevi feedback in tempo reale
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-card button [routerLink]="['/tabs/tips']" class="feature-card">
+        <ion-card-header>
+          <ion-icon name="bulb" size="large"></ion-icon>
+          <ion-card-title>Tips & Tricks</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          Scopri consigli e strategie efficaci per conversazioni di successo
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-card button [routerLink]="['/tabs/quiz']" class="feature-card">
+        <ion-card-header>
+          <ion-icon name="game-controller" size="large"></ion-icon>
+          <ion-card-title>Quiz</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          Metti alla prova le tue conoscenze con quiz interattivi
+        </ion-card-content>
+      </ion-card>
+    </div>
+    
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Come iniziare</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>
+          1. Scegli una personalità nella sezione Chat<br>
+          2. Inizia una conversazione simulata<br>
+          3. Ricevi feedback in tempo reale dal coach AI<br>
+          4. Consulta i consigli nella sezione Tips
+        </p>
+      </ion-card-content>
+    </ion-card>
   </div>
 </ion-content>

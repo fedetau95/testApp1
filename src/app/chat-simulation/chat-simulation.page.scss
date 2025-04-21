@@ -1,0 +1,64 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f5f5f5;
+  padding: 10px;
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.user-message, .ai-message {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.user-message {
+  justify-content: flex-end;
+}
+
+.ai-message {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 80%;
+  padding: 10px 15px;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.user-message .message-bubble {
+  background-color: #007bff;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.ai-message .message-bubble {
+  background-color: white;
+  color: #333;
+  border-bottom-left-radius: 5px;
+}
+
+.message-text {
+  margin-bottom: 5px;
+  white-space: pre-wrap;
+}
+
+.message-time {
+  font-size: 0.7em;
+  text-align: right;
+  opacity: 0.7;
+}
+
+.coach-feedback {
+  font-style: italic;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,39 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Chat Simulation</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openPersonalityModal()">
+        <ion-icon name="person-circle-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="resetChat()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="chat-container">
+    <div class="message-list">
+      <div *ngFor="let message of messages"
+        [ngClass]="{'user-message': message.sender === 'user', 'ai-message': message.sender === 'ai'}">
+        <div class="message-bubble">
+          <div class="message-text" [innerHTML]="formatMessage(message.text)"></div>
+          <div class="message-time">{{ message.timestamp | date:'shortTime' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-item>
+      <ion-input placeholder="Scrivi un messaggio..." [(ngModel)]="newMessage" (keyup.enter)="sendMessage()">
+      </ion-input>
+      <ion-button slot="end" (click)="sendMessage()" [disabled]="!newMessage.trim()">
+        <ion-icon name="send"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-toolbar>
+</ion-footer>
