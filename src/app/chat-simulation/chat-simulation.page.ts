@@ -21,7 +21,7 @@ import { personCircleOutline, refreshOutline, send, settingsOutline } from 'ioni
 
 import { ChatService, ChatMessage } from '../services/chat.service';
 import { PersonalityModalComponent } from '../components/personality-modal/personality-modal.component';
-import { ApiKeyModalComponent } from '../components/api-key-modal/api-key-modal.component';
+import { ApiSettingsComponent } from '../components/api-settings/api-settings.page'; // Adjust the path as needed
 
 @Component({
   selector: 'app-chat-simulation',
@@ -76,7 +76,7 @@ import { ApiKeyModalComponent } from '../components/api-key-modal/api-key-modal.
         [message]="error$ | async"
         [duration]="5000"
         position="top"
-        color="danger"
+        color="warning"
       ></ion-toast>
     </ion-content>
     
@@ -277,10 +277,13 @@ export class ChatSimulationPage implements OnInit {
 
   async openAISettings() {
     const modal = await this.modalController.create({
-      component: ApiKeyModalComponent
+      component: ApiSettingsComponent
     });
 
     await modal.present();
+
+    // Quando il modale viene chiuso, potremmo voler aggiornare qualcosa
+    await modal.onDidDismiss();
   }
 
   private scrollToBottom() {

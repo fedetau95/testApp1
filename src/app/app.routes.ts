@@ -33,4 +33,9 @@ export const routes: Routes = [
       },
     ],
   },
+  // Se hai una rotta dedicata per api-settings, modificala così:
+  {
+    path: 'api-settings',
+    loadComponent: () => import('./components/api-settings/api-settings.page').then(m => m.ApiSettingsComponent),
+  }
 ];

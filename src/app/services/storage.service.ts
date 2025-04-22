@@ -1,11 +1,10 @@
-// src/app/services/storage.service.ts
 import { Injectable } from '@angular/core';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StorageService {
-  constructor() {}
+  constructor() { }
 
   // Salva un valore
   async set(key: string, value: any): Promise<void> {
@@ -20,11 +19,11 @@ export class StorageService {
   async get(key: string): Promise<any> {
     try {
       const value = localStorage.getItem(key);
-      
+
       if (!value) {
         return null;
       }
-      
+
       try {
         // Prova a interpretarlo come JSON
         return JSON.parse(value);
