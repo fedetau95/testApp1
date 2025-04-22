@@ -1,7 +1,6 @@
-// src/app/chat-simulation/chat-simulation.page.ts
 import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgClass, NgFor, DatePipe } from '@angular/common';
+import { NgClass, NgFor, NgIf, DatePipe, AsyncPipe } from '@angular/common';
 import {
   IonContent,
   IonHeader,
@@ -13,13 +12,16 @@ import {
   IonItem,
   IonInput,
   IonFooter,
+  IonSpinner,
+  IonToast,
   ModalController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personCircleOutline, refreshOutline, send } from 'ionicons/icons';
+import { personCircleOutline, refreshOutline, send, settingsOutline } from 'ionicons/icons';
 
 import { ChatService, ChatMessage } from '../services/chat.service';
 import { PersonalityModalComponent } from '../components/personality-modal/personality-modal.component';
+import { ApiKeyModalComponent } from '../components/api-key-modal/api-key-modal.component';
 
 @Component({
   selector: 'app-chat-simulation',
@@ -28,6 +30,9 @@ import { PersonalityModalComponent } from '../components/personality-modal/perso
       <ion-toolbar color="primary">
         <ion-title>Chat Simulation</ion-title>
         <ion-buttons slot="end">
+          <ion-button (click)="openAISettings()">
+            <ion-icon name="settings-outline"></ion-icon>
+          </ion-button>
           <ion-button (click)="openPersonalityModal()">
             <ion-icon name="person-circle-outline"></ion-icon>
           </ion-button>
@@ -44,12 +49,35 @@ import { PersonalityModalComponent } from '../components/personality-modal/perso
           <div *ngFor="let message of messages" 
               [ngClass]="{'user-message': message.sender === 'user', 'ai-message': message.sender === 'ai'}">
             <div class="message-bubble">
-              <div class="message-text" [innerHTML]="formatMessage(message.text)"></div>
+              <div class="message-text">{{ message.text }}</div>
+              <div *ngIf="message.feedback" class="coach-feedback">
+                [Coach: {{ message.feedback }}]
+              </div>
               <div class="message-time">{{ message.timestamp | date:'shortTime' }}</div>
+            </div>
+          </div>
+          
+          <!-- Indicatore "sta scrivendo" -->
+          <div *ngIf="loading$ | async" class="ai-message typing-indicator">
+            <div class="message-bubble">
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      
+      <!-- Messaggio di errore -->
+      <ion-toast
+        [isOpen]="!!(error$ | async)"
+        [message]="error$ | async"
+        [duration]="5000"
+        position="top"
+        color="danger"
+      ></ion-toast>
     </ion-content>
     
     <ion-footer>
@@ -58,10 +86,12 @@ import { PersonalityModalComponent } from '../components/personality-modal/perso
           <ion-input 
             placeholder="Scrivi un messaggio..." 
             [(ngModel)]="newMessage" 
-            (keyup.enter)="sendMessage()">
+            (keyup.enter)="sendMessage()"
+            [disabled]="(loading$ | async) ?? false">
           </ion-input>
-          <ion-button slot="end" (click)="sendMessage()" [disabled]="!newMessage.trim()">
-            <ion-icon name="send"></ion-icon>
+          <ion-button slot="end" (click)="sendMessage()" [disabled]="!newMessage.trim() || (loading$ | async)">
+            <ion-icon *ngIf="!(loading$ | async)" name="send"></ion-icon>
+            <ion-spinner *ngIf="loading$ | async" name="dots"></ion-spinner>
           </ion-button>
         </ion-item>
       </ion-toolbar>
@@ -132,13 +162,49 @@ import { PersonalityModalComponent } from '../components/personality-modal/perso
       padding-top: 8px;
       border-top: 1px dashed rgba(0, 0, 0, 0.1);
     }
+    
+    /* Indicatore di digitazione */
+    .typing-indicator .message-bubble {
+      padding: 12px 20px;
+    }
+    
+    .typing-dots {
+      display: flex;
+      justify-content: center;
+    }
+    
+    .typing-dots span {
+      height: 8px;
+      width: 8px;
+      margin: 0 3px;
+      background-color: #999;
+      border-radius: 50%;
+      opacity: 0.4;
+      animation: blink 1.4s infinite both;
+    }
+    
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes blink {
+      0% { opacity: 0.4; }
+      20% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
   `],
   standalone: true,
   imports: [
     FormsModule,
     NgClass,
     NgFor,
+    NgIf,
     DatePipe,
+    AsyncPipe,
     IonContent,
     IonHeader,
     IonToolbar,
@@ -148,7 +214,9 @@ import { PersonalityModalComponent } from '../components/personality-modal/perso
     IonIcon,
     IonItem,
     IonInput,
-    IonFooter
+    IonFooter,
+    IonSpinner,
+    IonToast
   ]
 })
 export class ChatSimulationPage implements OnInit {
@@ -159,9 +227,11 @@ export class ChatSimulationPage implements OnInit {
 
   messages: ChatMessage[] = [];
   newMessage: string = '';
+  loading$ = this.chatService.loading$;
+  error$ = this.chatService.error$;
 
   constructor() {
-    addIcons({ personCircleOutline, refreshOutline, send });
+    addIcons({ personCircleOutline, refreshOutline, send, settingsOutline });
   }
 
   ngOnInit() {
@@ -205,15 +275,12 @@ export class ChatSimulationPage implements OnInit {
     }
   }
 
-  formatMessage(text: string): string {
-    // Convert line breaks to HTML and handle feedback section
-    if (text.includes('[Coach:')) {
-      const parts = text.split('[Coach:');
-      const message = parts[0].replace(/\n/g, '<br>');
-      const feedback = parts[1].replace(/\n/g, '<br>').replace(']', '');
-      return `${message}<div class="coach-feedback">[Coach: ${feedback}]</div>`;
-    }
-    return text.replace(/\n/g, '<br>');
+  async openAISettings() {
+    const modal = await this.modalController.create({
+      component: ApiKeyModalComponent
+    });
+
+    await modal.present();
   }
 
   private scrollToBottom() {

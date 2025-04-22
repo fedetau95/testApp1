@@ -1,10 +1,23 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonHeader, IonToolbar, IonTitle, IonContent, 
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent, 
-  IonCardSubtitle, IonIcon } from '@ionic/angular/standalone';
+import { 
+  IonHeader, 
+  IonToolbar, 
+  IonTitle, 
+  IonContent, 
+  IonCard, 
+  IonCardHeader, 
+  IonCardTitle, 
+  IonCardContent, 
+  IonCardSubtitle, 
+  IonIcon,
+  IonButton,
+  IonButtons,
+  ModalController
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { chatbubbles, bulb, gameController } from 'ionicons/icons';
+import { chatbubbles, bulb, gameController, settingsOutline } from 'ionicons/icons';
+import { ApiKeyModalComponent } from '../components/api-key-modal/api-key-modal.component';
 
 @Component({
   selector: 'app-home',
@@ -14,6 +27,11 @@ import { chatbubbles, bulb, gameController } from 'ionicons/icons';
         <ion-title>
           TalkMate
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="openAISettings()">
+            <ion-icon name="settings-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     
@@ -22,13 +40,18 @@ import { chatbubbles, bulb, gameController } from 'ionicons/icons';
         <ion-card>
           <ion-card-header>
             <ion-card-title>Benvenuto su TalkMate</ion-card-title>
-            <ion-card-subtitle>Il tuo assistente per migliorare le tue conversazioni</ion-card-subtitle>
+            <ion-card-subtitle>Il tuo assistente AI per migliorare le tue conversazioni</ion-card-subtitle>
           </ion-card-header>
           
           <ion-card-content>
             <p>
               TalkMate ti aiuta a migliorare le tue capacità conversazionali attraverso simulazioni realistiche, 
               consigli pratici e quiz interattivi.
+            </p>
+
+            <p>
+              <strong>Powered by AI:</strong> Ottieni risposte realistiche e feedback personalizzato basato 
+              sulle tue interazioni.
             </p>
           </ion-card-content>
         </ion-card>
@@ -71,13 +94,19 @@ import { chatbubbles, bulb, gameController } from 'ionicons/icons';
           </ion-card-header>
           <ion-card-content>
             <p>
-              1. Scegli una personalità nella sezione Chat<br>
-              2. Inizia una conversazione simulata<br>
-              3. Ricevi feedback in tempo reale dal coach AI<br>
-              4. Consulta i consigli nella sezione Tips
+              1. Configura l'AI nell'impostazioni (tasto in alto a destra)<br>
+              2. Scegli una personalità nella sezione Chat<br>
+              3. Inizia una conversazione simulata<br>
+              4. Ricevi feedback in tempo reale dal coach AI<br>
+              5. Consulta i consigli nella sezione Tips
             </p>
           </ion-card-content>
         </ion-card>
+        
+        <ion-button expand="block" (click)="openAISettings()" color="secondary">
+          <ion-icon name="settings-outline" slot="start"></ion-icon>
+          Configura l'AI
+        </ion-button>
       </div>
     </ion-content>
   `,
@@ -131,11 +160,30 @@ import { chatbubbles, bulb, gameController } from 'ionicons/icons';
     IonCardSubtitle,
     IonCardContent, 
     IonIcon,
+    IonButton,
+    IonButtons,
     RouterLink
   ]
 })
 export class HomePage {
+  private modalController = inject(ModalController);
+  
   constructor() {
-    addIcons({ chatbubbles, bulb, gameController });
+    addIcons({ chatbubbles, bulb, gameController, settingsOutline });
+  }
+  
+  async openAISettings() {
+    const modal = await this.modalController.create({
+      component: ApiKeyModalComponent
+    });
+
+    await modal.present();
+    
+    const { data } = await modal.onDidDismiss();
+    if (data && data.success) {
+      // Se l'utente ha configurato con successo l'API key, possiamo mostrare un messaggio
+      console.log('API key configurata con successo');
+      // Qui puoi aggiungere un toast o un alert per confermare all'utente
+    }
   }
 }

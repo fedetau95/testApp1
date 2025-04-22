@@ -1,12 +1,13 @@
-// src/app/services/chat.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { AIService } from './ai.service';
 
 export interface ChatMessage {
   id: number;
   text: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  feedback?: string;
 }
 
 export interface PersonalityType {
@@ -19,14 +20,24 @@ export interface PersonalityType {
   providedIn: 'root'
 })
 export class ChatService {
+  private aiService = inject(AIService);
+
   // Chat messages observable
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   public messages$ = this.messagesSubject.asObservable();
 
-  // Selected personality
-  private currentPersonality: keyof typeof this.responses = 'default';
+  // Stato del caricamento
+  private loadingSubject = new BehaviorSubject<boolean>(false);
+  public loading$ = this.loadingSubject.asObservable();
 
-  // Personality types
+  // Stato dell'errore
+  private errorSubject = new BehaviorSubject<string | null>(null);
+  public error$ = this.errorSubject.asObservable();
+
+  // Selected personality
+  private currentPersonality: string = 'default';
+
+  // Personalità disponibili
   public personalities: PersonalityType[] = [
     {
       id: 'timida',
@@ -50,8 +61,8 @@ export class ChatService {
     }
   ];
 
-  // Canned responses based on personality
-  private responses = {
+  // Risposte di fallback (usate quando l'API non è disponibile)
+  private fallbackResponses = {
     'timida': [
       'Ciao... come stai?',
       'Non so... forse...',
@@ -82,8 +93,8 @@ export class ChatService {
     ]
   };
 
-  // Feedback templates
-  private feedback = {
+  // Feedback predefiniti di fallback
+  private fallbackFeedback = {
     'positive': [
       'Buona risposta! Hai mostrato interesse senza esagerare.',
       'Ottimo approccio, personale ma non invadente.',
@@ -98,26 +109,61 @@ export class ChatService {
 
   constructor() { }
 
-  // Set personality
+  // Imposta la chiave API per il servizio AI
+  setApiKey(key: string): Promise<void> {
+    return this.aiService.setApiKey(key);
+  }
+
+  // Imposta la personalità
   setPersonality(personalityId: string): void {
     if (this.personalities.some(p => p.id === personalityId)) {
-      this.currentPersonality = personalityId as 'timida' | 'diretta' | 'sarcastica' | 'default';
+      this.currentPersonality = personalityId;
+      this.aiService.setPersonality(personalityId as 'default' | 'timida' | 'diretta' | 'sarcastica');
       this.resetChat();
     }
   }
 
-  // Reset chat
+  // Resetta la chat
   resetChat(): void {
-    const welcomeMessage = this.getRandomResponse();
-    this.messagesSubject.next([{
-      id: 1,
-      text: welcomeMessage,
-      sender: 'ai',
-      timestamp: new Date()
-    }]);
+    this.aiService.resetConversation();
+
+    // Invia un messaggio iniziale usando l'AI
+    this.loadingSubject.next(true);
+    this.errorSubject.next(null);
+
+    this.aiService.getAIResponse('Ciao!').subscribe({
+      next: (response) => {
+        const welcomeMessage: ChatMessage = {
+          id: 1,
+          text: response.text,
+          sender: 'ai',
+          timestamp: new Date(),
+          feedback: response.feedback
+        };
+
+        this.messagesSubject.next([welcomeMessage]);
+        this.loadingSubject.next(false);
+      },
+      error: (error) => {
+        // Fallback alle risposte predefinite in caso di errore
+        console.error('Errore nel recupero della risposta AI:', error);
+
+        const randomResponse = this.getRandomFallbackResponse();
+        const welcomeMessage: ChatMessage = {
+          id: 1,
+          text: randomResponse,
+          sender: 'ai',
+          timestamp: new Date()
+        };
+
+        this.messagesSubject.next([welcomeMessage]);
+        this.loadingSubject.next(false);
+        this.errorSubject.next('Non è stato possibile connettersi al servizio AI. Usando risposte predefinite.');
+      }
+    });
   }
 
-  // Add user message
+  // Aggiungi un messaggio utente
   addUserMessage(text: string): void {
     const currentMessages = this.messagesSubject.value;
     const newMessage: ChatMessage = {
@@ -128,45 +174,66 @@ export class ChatService {
     };
 
     this.messagesSubject.next([...currentMessages, newMessage]);
+    this.loadingSubject.next(true);
+    this.errorSubject.next(null);
 
-    // Simulate AI response after a short delay
-    setTimeout(() => {
-      this.addAiResponse();
-    }, 1000);
+    // Ottieni risposta AI
+    this.aiService.getAIResponse(text).subscribe({
+      next: (response) => {
+        this.addAiResponseFromAPI(response);
+        this.loadingSubject.next(false);
+      },
+      error: (error) => {
+        console.error('Errore nella risposta AI:', error);
+        this.addFallbackAiResponse();
+        this.loadingSubject.next(false);
+        this.errorSubject.next('Non è stato possibile ottenere una risposta AI. Usando risposte predefinite.');
+      }
+    });
   }
 
-  // Add AI response
-  private addAiResponse(): void {
+  // Aggiungi risposta AI dall'API
+  private addAiResponseFromAPI(response: { text: string, feedback?: string }): void {
     const currentMessages = this.messagesSubject.value;
-    const response = this.getRandomResponse();
-    const feedback = Math.random() > 0.7 ? this.getRandomFeedback() : null;
-
-    let responseText = response;
-    if (feedback) {
-      responseText += '\n\n[Coach: ' + feedback + ']';
-    }
 
     const newMessage: ChatMessage = {
       id: currentMessages.length + 1,
-      text: responseText,
+      text: response.text,
       sender: 'ai',
-      timestamp: new Date()
+      timestamp: new Date(),
+      feedback: response.feedback
     };
 
     this.messagesSubject.next([...currentMessages, newMessage]);
   }
 
-  // Get random response based on current personality
-  private getRandomResponse(): string {
-    const responseList = this.responses[this.currentPersonality];
+  // Aggiungi risposta predefinita (fallback)
+  private addFallbackAiResponse(): void {
+    const currentMessages = this.messagesSubject.value;
+    const response = this.getRandomFallbackResponse();
+    const feedback = Math.random() > 0.5 ? this.getRandomFallbackFeedback('positive') : this.getRandomFallbackFeedback('negative');
+
+    const newMessage: ChatMessage = {
+      id: currentMessages.length + 1,
+      text: response,
+      sender: 'ai',
+      timestamp: new Date(),
+      feedback: feedback
+    };
+
+    this.messagesSubject.next([...currentMessages, newMessage]);
+  }
+
+  // Ottieni una risposta predefinita casuale
+  private getRandomFallbackResponse(): string {
+    const responseList = this.fallbackResponses[this.currentPersonality as keyof typeof this.fallbackResponses];
     const randomIndex = Math.floor(Math.random() * responseList.length);
     return responseList[randomIndex];
   }
 
-  // Get random feedback
-  private getRandomFeedback(): string {
-    const feedbackType = Math.random() > 0.5 ? 'positive' : 'negative';
-    const feedbackList = this.feedback[feedbackType];
+  // Ottieni un feedback predefinito casuale
+  private getRandomFallbackFeedback(type: 'positive' | 'negative'): string {
+    const feedbackList = this.fallbackFeedback[type];
     const randomIndex = Math.floor(Math.random() * feedbackList.length);
     return feedbackList[randomIndex];
   }
